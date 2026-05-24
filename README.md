@@ -1,147 +1,217 @@
-# my-foundational-agents
+# 🚀 foundational-agents
 
 Async orchestration hub for specialized AI agent personas, powered by the [Google Antigravity SDK](https://github.com/google/antigravity) and served via [FastMCP](https://modelcontextprotocol.io/).
 
-## Architecture
+---
+
+## 📐 Architecture & Multi-SDK Compatibility
+
+This library is designed for maximum compatibility across AI assistants and development environments (including Claude Desktop, Claude Code, Cursor, VS Code, and GitHub Copilot). It achieves this via two distinct runtime modes:
 
 ```
-┌────────────────────────────────────────────────┐
-│              FastMCP Server (stdio)             │
-│  ┌──────────────────────────────────────────┐  │
-│  │          ProjectCoordinator              │  │
-│  │  ┌────────┐ ┌────────┐ ┌────────┐       │  │
-│  │  │Present.│ │Project │ │System  │ ...   │  │
-│  │  │Maker   │ │Manager │ │Design  │       │  │
-│  │  └────────┘ └────────┘ └────────┘       │  │
-│  │         SharedStateMatrix                │  │
-│  └──────────────────────────────────────────┘  │
-└────────────────────────────────────────────────┘
-         ▲                          │
-    MCP request              MCP response
-         │                          ▼
-   ┌─────────────────────────────────────┐
-   │  Host (Claude Desktop / Claude Code) │
-   └─────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────┐
+│                              RUNTIME MODES                             │
+├────────────────────────────────────────┬───────────────────────────────┤
+│          1. MCP Server Mode            │    2. Native Template Mode    │
+│  (For Cursor, Claude, Copilot, etc.)   │   (Direct IDE System Prompts) │
+│                                        │                               │
+│  ┌──────────────────────────────────┐  │   ┌────────────────────────┐  │
+│  │      FastMCP Server (stdio)      │  │   │  Claude Code / Copilot │  │
+│  │  ┌────────────────────────────┐  │  │   │  (Runs natively using  │  │
+│  │  │     ProjectCoordinator     │  │  │   │   default host LLMs)   │  │
+│  │  │ ┌─────────┐ ┌────────────┐ │  │  │   └───────────┬────────────┘  │
+│  │  │ │Workers  │ │Shared State│ │  │  │               │               │
+│  │  │ └─────────┘ └────────────┘ │  │  │               ▼               │
+│  │  └────────────────────────────┘  │  │   - .claude/agents/*.SKILL.md │
+│  └──────────────────────────────────┘  │   - .github/agents/*.agent.md │
+└────────────────────────────────────────┴───────────────────────────────┘
 ```
 
-## Installation
+1. **MCP Server Mode**: Exposes a multi-agent team and individual workers as standard Model Context Protocol (MCP) tools. Host IDEs call these tools via standard JSON-RPC. Tool execution runs inside your Python environment using the `google-antigravity` SDK.
+2. **Native Template Mode**: Bundled agent persona instructions can be unpacked directly into your local workspace. They run locally within Claude Code or GitHub Copilot using the host's selected default model (e.g. Claude 3.5 Sonnet or Copilot default models), bypassing the Python runtime entirely.
 
-You can install the package directly from version control using `pip`.
+---
 
-1. **Create a virtual environment** (Optional but recommended):
-```bash
-python3 -m venv venv
-source venv/bin/activate
-```
-
-2. **Install the package and its dependencies:**
-```bash
-pip install git+https://github.com/yourusername/foundational-agents.git
-```
-
-*(Note: If you plan to modify the code, you can clone the repository and run `pip install -e .` instead.)*
+## ⚡ Quick Start
 
 ### Prerequisites
 
-- Python 3.11+
-- A `GEMINI_API_KEY` environment variable ([get one here](https://aistudio.google.com/app/api-keys))
+- Python **3.11** or higher.
+- A `GEMINI_API_KEY` environment variable (required for MCP Server / Antigravity Python execution). Get a key from [Google AI Studio](https://aistudio.google.com/app/api-keys).
 
-## Usage
+### Installation
 
-### As an MCP Server (Claude Desktop)
+You can install the package directly from GitHub via `pip`:
 
-To run the agents inside Claude Desktop, add the following to your `claude_desktop_config.json` (or equivalent host configuration):
+```bash
+# Create a virtual environment (optional but recommended)
+python3 -m venv venv
+source venv/bin/activate
+
+# Install the package from GitHub
+pip install git+https://github.com/catlikeflyer/foundational-agents.git
+```
+
+> [!NOTE]
+> Installing this package registers the global CLI tool `fd-agents` and exposes the MCP server modules on your python path.
+
+---
+
+## ⚙️ Model Configuration & Selection
+
+To ensure the library remains flexible and does not lock you into a single hardcoded LLM default, model selection works as follows:
+
+* **Host/SDK Defaults**: If no model is specified programmatically or in the environment, the execution layer defaults to the underlying SDK configuration. This ensures that Gemini is not hardcoded as the baseline fallback across other toolchains.
+* **Environment Variable Override**: You can set the `FOUNDATIONAL_AGENTS_MODEL` environment variable to define the model used by the MCP tools:
+  ```bash
+  export FOUNDATIONAL_AGENTS_MODEL="gemini-2.5-flash"
+  ```
+* **Programmatic Specification**: When using the library in Python, pass the model identifier directly during class construction:
+  ```python
+  coordinator = ProjectCoordinator(model="gemini-1.5-pro")
+  ```
+
+---
+
+## 🛠️ Usage Guide
+
+### 1. As an MCP Server
+
+Once installed, the server can be run with:
+```bash
+python -m foundational_agents.mcp.server
+```
+
+#### Claude Desktop Configuration
+Add the server definition to your `claude_desktop_config.json` (typically located at `~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
 
 ```json
 {
   "mcpServers": {
     "foundational-agents": {
       "command": "python",
-      "args": ["-m", "my_foundational_agents.mcp.server"],
+      "args": ["-m", "foundational_agents.mcp.server"],
       "env": {
-        "GEMINI_API_KEY": "your-api-key-here"
+        "GEMINI_API_KEY": "your-actual-api-key-here",
+        "FOUNDATIONAL_AGENTS_MODEL": "gemini-3.5-flash"
       }
     }
   }
 }
 ```
 
-By default, the agents are powered by the default model of the underlying SDK. You can override this using the `FOUNDATIONAL_AGENTS_MODEL` environment variable.
+#### Cursor Integration
+1. Go to **Settings** > **Features** > **MCP**.
+2. Click **+ Add New MCP Server**.
+3. Set the details:
+   - **Name**: `foundational-agents`
+   - **Type**: `command`
+   - **Command**: `python -m foundational_agents.mcp.server` (ensure your environment's `GEMINI_API_KEY` is available to Cursor, or use a wrapper script).
 
-### Testing the Server Locally
+---
 
-You can test the MCP server interactively without Claude Desktop by using the official MCP inspector. This is the best way to verify that your API key is working and the agents are responding.
+### 2. Native IDE Agent Templates (CLI)
+
+Use the built-in CLI command `fd-agents` to unpack optimized persona profiles directly into your projects. This allows tools like Claude Code and Copilot to use the exact same agent guidelines natively.
 
 ```bash
-# Ensure your API key is exported
-export GEMINI_API_KEY="your-api-key-here"
+# Install templates in your current project directory
+fd-agents install
 
-# Launch the interactive web inspector
-npx -y @modelcontextprotocol/inspector python -m my_foundational_agents.mcp.server
+# Install templates globally to your $HOME folder
+fd-agents install --global
+
+# Preview changes before writing files
+fd-agents install --dry-run
 ```
 
-This command will output a local URL (usually `http://localhost:5173`). Open it in your browser to interact with the foundational agent tools directly!
+This commands copies:
+* 📝 **Claude Code Skills** (`.SKILL.md`) $\rightarrow$ `.claude/agents/`
+* 🤖 **Copilot Agent Prompts** (`.agent.md`) $\rightarrow$ `.github/agents/`
 
-### Programmatic Usage
+---
+
+### 3. Programmatic Usage in Python
+
+You can integrate the coordination matrix directly into your custom Python tools and automated pipelines:
 
 ```python
 import asyncio
-from my_foundational_agents.core.coordinator import ProjectCoordinator
+from foundational_agents.core.coordinator import ProjectCoordinator
 
 async def main():
-    # You can explicitly specify the model when instantiating the coordinator,
-    # or leave it empty to use the SDK's default model.
+    # Instantiate the coordinator. It will automatically delegate
+    # to individual specialists based on the complexity of your request.
     coordinator = ProjectCoordinator()
-    result = await coordinator.run(
-        "Design a microservices architecture for an e-commerce platform"
+    
+    request = (
+        "Design a high-throughput notifications service, create a timeline "
+        "for its implementation, and propose a launch campaign outline."
     )
-    print(result)
+    
+    print("🚀 Running Project Coordinator...")
+    response = await coordinator.run(request)
+    print("\n📝 Result:")
+    print(response)
 
-asyncio.run(main())
+if __name__ == "__main__":
+    asyncio.run(main())
 ```
 
-### CLI — Template Installer
+---
 
-Unpack bundled agent templates to your project:
+## 🧪 Testing the Server Locally
+
+You can interactively debug the server and test tools using the official Model Context Protocol inspector:
 
 ```bash
-# Install to current working directory
-fd-agents install
+# Export your API key
+export GEMINI_API_KEY="your-gemini-api-key"
 
-# Install to $HOME (global)
-fd-agents install --global
+# Launch the inspector tool
+npx -y @modelcontextprotocol/inspector python -m foundational_agents.mcp.server
 ```
 
-This copies:
-- `claude/*.SKILL.md` → `.claude/agents/`
-- `copilot/*.agent.md` → `.github/agents/`
+Open the URL printed in the terminal (usually `http://localhost:5173`) to view and execute all the tools (`coordinate_project`, `create_presentation`, `manage_project`, `design_system`, and `analyze_market`).
 
-## Agent Personas
+---
 
-| Persona | Description |
-|---|---|
-| **Presentation Maker** | Builds slide decks, outlines, and visual presentation structures |
-| **Project Manager** | Plans timelines, tracks milestones, allocates resources |
-| **System Design Engineer** | Architects systems, designs APIs, models data flows |
-| **Marketing Analyst** | Analyzes markets, competitive landscapes, and positioning strategies |
+## 👥 Agent Personas
 
-## Project Structure
+The system includes the following four core personas, each with comprehensive rulesets and structured markdown formatting outputs:
+
+| Persona | Purpose / Use Case | Output Artifacts |
+| :--- | :--- | :--- |
+| **Presentation Maker** | Designs high-impact slide structures and pitch narratives. | Numbered slide outlines with layout rules, slide tags, and speaker notes. |
+| **Project Manager** | Decomposes initiatives, coordinates resources, and manages risk. | Task tables, milestones, timeline graphs, RACI matrices, risk registers. |
+| **System Design Engineer** | Architects distributed backends, models schemas, and maps APIs. | High-level container structures, API endpoints, schema definitions, trade-offs. |
+| **Marketing Analyst** | Evaluates competitors, profiles segments, and sizes market scope. | TAM/SAM/SOM sizing matrices, competitor profiles, SWOT analysis, GTM advice. |
+
+---
+
+## 📁 Repository Structure
 
 ```
-src/my_foundational_agents/
-├── __init__.py           # Package exports
-├── cli.py                # Click CLI (fd-agents)
-├── core/
-│   ├── state.py          # SharedStateMatrix
-│   ├── workers.py        # 4 specialized worker classes
-│   └── coordinator.py    # ProjectCoordinator orchestrator
-├── mcp/
-│   └── server.py         # FastMCP stdio server
-└── templates/
-    ├── claude/            # SKILL.md templates
-    └── copilot/           # .agent.md templates
+foundational-agents/
+├── pyproject.toml         # Hatch project configuration
+├── README.md              # Project documentation
+└── src/
+    └── foundational_agents/
+        ├── __init__.py    # Main library entry exports
+        ├── cli.py         # Click command line tool (fd-agents)
+        ├── core/          # Orchestration layer logic
+        │   ├── state.py   # SharedStateMatrix for worker collaboration
+        │   ├── workers.py # Worker agent personas
+        │   └── coordinator.py # Main orchestration loop
+        ├── mcp/
+        │   └── server.py  # FastMCP stdio server setup
+        └── templates/     # Persona templates for IDE integration
+            ├── claude/    # Custom Claude skills
+            └── copilot/   # Custom GitHub Copilot instructions
 ```
 
-## License
+---
 
-Apache 2.0
+## 📄 License
+
+This project is licensed under the Apache-2.0 License.

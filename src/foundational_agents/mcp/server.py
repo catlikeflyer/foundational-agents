@@ -7,7 +7,7 @@ MCP-compatible client.
 
 Run directly::
 
-    python -m my_foundational_agents.mcp.server
+    python -m foundational_agents.mcp.server
 
 Or configure in Claude Desktop's ``claude_desktop_config.json``::
 
@@ -15,7 +15,7 @@ Or configure in Claude Desktop's ``claude_desktop_config.json``::
       "mcpServers": {
         "foundational-agents": {
           "command": "python",
-          "args": ["-m", "my_foundational_agents.mcp.server"]
+          "args": ["-m", "foundational_agents.mcp.server"]
         }
       }
     }
@@ -29,9 +29,9 @@ from typing import Annotated
 
 from mcp.server.fastmcp import FastMCP
 
-from my_foundational_agents.core.coordinator import ProjectCoordinator
-from my_foundational_agents.core.state import SharedStateMatrix
-from my_foundational_agents.core.workers import (
+from foundational_agents.core.coordinator import ProjectCoordinator
+from foundational_agents.core.state import SharedStateMatrix
+from foundational_agents.core.workers import (
     MarketingAnalystWorker,
     PresentationMakerWorker,
     ProjectManagerWorker,

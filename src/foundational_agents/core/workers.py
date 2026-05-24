@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from google.antigravity import Agent, LocalAgentConfig
 
-from my_foundational_agents.core.state import SharedStateMatrix, TaskStatus
+from foundational_agents.core.state import SharedStateMatrix, TaskStatus
 
 
 # ---------------------------------------------------------------------------

@@ -42,7 +42,7 @@ def _get_template_source() -> resources.abc.Traversable:
     Returns:
         A Traversable reference to the templates package.
     """
-    return resources.files("my_foundational_agents.templates")
+    return resources.files("foundational_agents.templates")
 
 
 def _copy_templates(
@@ -91,7 +91,7 @@ def _copy_templates(
 # ---------------------------------------------------------------------------
 
 @click.group()
-@click.version_option(package_name="my-foundational-agents")
+@click.version_option(package_name="foundational-agents")
 def main() -> None:
     """fd-agents: Foundational Agents CLI.
 

@@ -10,8 +10,8 @@ from __future__ import annotations
 
 from google.antigravity import Agent, LocalAgentConfig, ToolContext
 
-from my_foundational_agents.core.state import SharedStateMatrix
-from my_foundational_agents.core.workers import (
+from foundational_agents.core.state import SharedStateMatrix
+from foundational_agents.core.workers import (
     MarketingAnalystWorker,
     PresentationMakerWorker,
     ProjectManagerWorker,
