@@ -37,7 +37,7 @@ This library is designed for maximum compatibility across AI assistants and deve
 ### Prerequisites
 
 - Python **3.11** or higher.
-- A `GEMINI_API_KEY` environment variable (required for MCP Server / Antigravity Python execution). Get a key from [Google AI Studio](https://aistudio.google.com/app/api-keys).
+- A `GEMINI_API_KEY` environment variable. *(Note: This is **optional** when running under hosts that support MCP Sampling like Claude Desktop or Claude Code, but required for local python usage or fallback mode).* Get a key from [Google AI Studio](https://aistudio.google.com/app/api-keys).
 
 ### Installation
 
@@ -59,14 +59,15 @@ pip install git+https://github.com/catlikeflyer/foundational-agents.git
 
 ## ⚙️ Model Configuration & Selection
 
-To ensure the library remains flexible and does not lock you into a single hardcoded LLM default, model selection works as follows:
+To ensure the library remains flexible, it uses native host LLMs when possible and provides fallbacks for programmatic usage:
 
-* **Host/SDK Defaults**: If no model is specified programmatically or in the environment, the execution layer defaults to the underlying SDK configuration. This ensures that Gemini is not hardcoded as the baseline fallback across other toolchains.
-* **Environment Variable Override**: You can set the `FOUNDATIONAL_AGENTS_MODEL` environment variable to define the model used by the MCP tools:
+* **MCP Client Native Sampling (Standard Integration)**: When running as an MCP server, the server dynamically queries the client/host via **MCP Sampling** (`create_message`). This means if you run the server under Claude Desktop, it will natively use Claude (e.g. `claude-sonnet-4.6` or whichever model you have active in your Claude Desktop/Claude Code session) without requiring any local Gemini setup or API keys!
+* **Graceful Fallback**: If the host client does not support or permit sampling, the server automatically falls back to local execution using the `google-antigravity` (Gemini) SDK (which requires the `GEMINI_API_KEY` to be set).
+* **Environment Variable Override**: You can override the fallback model or specify a Gemini model for execution by setting the `FOUNDATIONAL_AGENTS_MODEL` environment variable:
   ```bash
   export FOUNDATIONAL_AGENTS_MODEL="gemini-2.5-flash"
   ```
-* **Programmatic Specification**: When using the library in Python, pass the model identifier directly during class construction:
+* **Programmatic Specification**: When using the library in raw Python code, pass the model identifier directly during class construction:
   ```python
   coordinator = ProjectCoordinator(model="gemini-1.5-pro")
   ```
@@ -83,22 +84,22 @@ python -m foundational_agents.mcp.server
 ```
 
 #### Claude Desktop Configuration
-Add the server definition to your `claude_desktop_config.json` (typically located at `~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
+Add the server definition to your `claude_desktop_config.json` (typically located at `~/Library/Application Support/Claude/claude_desktop_config.json` on macOS).
+
+Since the server automatically utilizes native Claude sampling, the `GEMINI_API_KEY` is **not required** unless you want to configure a fallback for when sampling is disabled:
 
 ```json
 {
   "mcpServers": {
     "foundational-agents": {
       "command": "python",
-      "args": ["-m", "foundational_agents.mcp.server"],
-      "env": {
-        "GEMINI_API_KEY": "your-actual-api-key-here",
-        "FOUNDATIONAL_AGENTS_MODEL": "gemini-3.5-flash"
-      }
+      "args": ["-m", "foundational_agents.mcp.server"]
     }
   }
 }
 ```
+
+*(If you want to configure fallback support, pass `"env": { "GEMINI_API_KEY": "your-key", "FOUNDATIONAL_AGENTS_MODEL": "gemini-2.5-flash" }` inside the server configuration.)*
 
 #### Cursor Integration
 1. Go to **Settings** > **Features** > **MCP**.
@@ -106,7 +107,8 @@ Add the server definition to your `claude_desktop_config.json` (typically locate
 3. Set the details:
    - **Name**: `foundational-agents`
    - **Type**: `command`
-   - **Command**: `python -m foundational_agents.mcp.server` (ensure your environment's `GEMINI_API_KEY` is available to Cursor, or use a wrapper script).
+   - **Command**: `python -m foundational_agents.mcp.server` (ensure your environment path has Python available).
+   *(Note: Cursor supports MCP Sampling, so no API keys are required for standard tool use!)*
 
 ---
 

@@ -8,6 +8,7 @@ plus the shared state matrix for context injection.
 from __future__ import annotations
 
 from google.antigravity import Agent, LocalAgentConfig
+from mcp.server.fastmcp import Context
 
 from foundational_agents.core.state import SharedStateMatrix, TaskStatus
 
@@ -168,12 +169,18 @@ class _BaseWorker:
             
         self.config = LocalAgentConfig(**kwargs)
 
-    async def execute(self, task: str, state: SharedStateMatrix) -> str:
+    async def execute(
+        self,
+        task: str,
+        state: SharedStateMatrix,
+        ctx: Context | None = None,
+    ) -> str:
         """Run this worker against a task with shared state context.
 
         Args:
             task: The task description to execute.
             state: The shared state matrix for context and artifact tracking.
+            ctx: The MCP FastMCP Context for sampling back to client LLM.
 
         Returns:
             The worker's text response.
@@ -190,6 +197,43 @@ class _BaseWorker:
         )
         await state.update_task(task_id, status=TaskStatus.IN_PROGRESS)
 
+        # 1. Try to use client LLM sampling if ctx is provided and sampling works
+        if ctx is not None:
+            try:
+                await ctx.info(f"[{self.worker_key}] Requesting sampling from host native LLM...")
+                
+                from mcp.types import SamplingMessage, TextContent
+                
+                system_prompt = WORKER_PROMPTS[self.worker_key]
+                messages = [
+                    SamplingMessage(
+                        role="user",
+                        content=TextContent(type="text", text=prompt),
+                    )
+                ]
+                
+                # Request message sampling from client
+                result = await ctx.session.create_message(
+                    messages=messages,
+                    system_prompt=system_prompt,
+                    max_tokens=4000,
+                )
+                
+                result_text = result.content.text
+                
+                # Update state: mark complete and record artifact
+                await state.update_task(task_id, status=TaskStatus.COMPLETE, output=result_text)
+                await state.add_artifact(result_text)
+                return result_text
+                
+            except Exception as e:
+                # If sampling fails or isn't supported, log a warning and fall back
+                await ctx.warning(
+                    f"[{self.worker_key}] Sampling failed or not supported by client. "
+                    f"Falling back to local google-antigravity Agent. Error: {e}"
+                )
+
+        # 2. Fallback / direct run via google-antigravity Agent
         try:
             async with Agent(self.config) as agent:
                 response = await agent.chat(prompt)

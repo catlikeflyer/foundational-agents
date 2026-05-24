@@ -27,7 +27,7 @@ import os
 import sys
 from typing import Annotated
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server.fastmcp import Context, FastMCP
 
 from foundational_agents.core.coordinator import ProjectCoordinator
 from foundational_agents.core.state import SharedStateMatrix
@@ -48,7 +48,7 @@ def _check_api_key() -> None:
     if not os.environ.get("GEMINI_API_KEY"):
         print(
             "[foundational-agents] WARNING: GEMINI_API_KEY not set. "
-            "Agent tools will fail at runtime. "
+            "Agent tools will fail at runtime if client sampling fails. "
             "Get a key at https://aistudio.google.com/app/api-keys",
             file=sys.stderr,
         )
@@ -72,6 +72,7 @@ mcp = FastMCP("foundational-agents")
 @mcp.tool()
 async def coordinate_project(
     request: Annotated[str, "A detailed project request to orchestrate across multiple specialist agents."],
+    ctx: Context,
 ) -> str:
     """Orchestrate a multi-agent team to fulfill a complex project request.
 
@@ -81,9 +82,8 @@ async def coordinate_project(
 
     Best for: complex, multi-faceted requests that span multiple domains.
     """
-    _check_api_key()
     coordinator = ProjectCoordinator(model=_get_model())
-    return await coordinator.run(request)
+    return await coordinator.run(request, ctx=ctx)
 
 
 # ---------------------------------------------------------------------------
@@ -93,36 +93,37 @@ async def coordinate_project(
 @mcp.tool()
 async def create_presentation(
     request: Annotated[str, "What kind of presentation, deck, or outline to create. Include audience, purpose, and constraints."],
+    ctx: Context,
 ) -> str:
     """Build presentation structures, slide deck templates, or outlines.
 
     The Presentation Maker designs narrative-driven slide decks with proper
     visual hierarchy, speaker notes, and audience-adaptive formatting.
     """
-    _check_api_key()
     worker = PresentationMakerWorker(model=_get_model())
     state = SharedStateMatrix(project_context=request, phase="direct_execution")
-    return await worker.execute(request, state)
+    return await worker.execute(request, state, ctx=ctx)
 
 
 @mcp.tool()
 async def manage_project(
     request: Annotated[str, "The project planning task: timeline creation, resource allocation, risk assessment, sprint planning, etc."],
+    ctx: Context,
 ) -> str:
     """Plan timelines, track milestones, allocate resources, and manage workflows.
 
     The Project Manager produces work breakdown structures, Gantt-style
     timelines, RACI matrices, risk registers, and sprint plans.
     """
-    _check_api_key()
     worker = ProjectManagerWorker(model=_get_model())
     state = SharedStateMatrix(project_context=request, phase="direct_execution")
-    return await worker.execute(request, state)
+    return await worker.execute(request, state, ctx=ctx)
 
 
 @mcp.tool()
 async def design_system(
     request: Annotated[str, "The system design challenge: architecture, API design, data modeling, scalability, etc."],
+    ctx: Context,
 ) -> str:
     """Architect systems, design APIs, model data flows, and produce technical specs.
 
@@ -130,25 +131,24 @@ async def design_system(
     requirements through high-level and detailed design, with trade-off
     analysis and capacity estimates.
     """
-    _check_api_key()
     worker = SystemDesignerWorker(model=_get_model())
     state = SharedStateMatrix(project_context=request, phase="direct_execution")
-    return await worker.execute(request, state)
+    return await worker.execute(request, state, ctx=ctx)
 
 
 @mcp.tool()
 async def analyze_market(
     request: Annotated[str, "The market analysis task: competitive landscape, market sizing, positioning, GTM strategy, etc."],
+    ctx: Context,
 ) -> str:
     """Analyze markets, competitive landscapes, positioning strategies, and campaigns.
 
     The Marketing Analyst delivers data-grounded analysis with TAM/SAM/SOM
     sizing, competitor matrices, customer personas, and actionable recommendations.
     """
-    _check_api_key()
     worker = MarketingAnalystWorker(model=_get_model())
     state = SharedStateMatrix(project_context=request, phase="direct_execution")
-    return await worker.execute(request, state)
+    return await worker.execute(request, state, ctx=ctx)
 
 
 # ---------------------------------------------------------------------------
