@@ -174,13 +174,13 @@ export GEMINI_API_KEY="your-gemini-api-key"
 npx -y @modelcontextprotocol/inspector python -m foundational_agents.mcp.server
 ```
 
-Open the URL printed in the terminal (usually `http://localhost:5173`) to view and execute all the tools (`coordinate_project`, `create_presentation`, `manage_project`, `design_system`, and `analyze_market`).
+Open the URL printed in the terminal (usually `http://localhost:5173`) to view and execute all the tools (`coordinate_project`, `create_presentation`, `manage_project`, `design_system`, `analyze_market`, and `document_code`).
 
 ---
 
 ## 👥 Agent Personas
 
-The system includes the following four core personas, each with comprehensive rulesets and structured markdown formatting outputs:
+The system includes the following five core personas, each with comprehensive rulesets and structured markdown formatting outputs:
 
 | Persona | Purpose / Use Case | Output Artifacts |
 | :--- | :--- | :--- |
@@ -188,6 +188,7 @@ The system includes the following four core personas, each with comprehensive ru
 | **Project Manager** | Decomposes initiatives, coordinates resources, and manages risk. | Task tables, milestones, timeline graphs, RACI matrices, risk registers. |
 | **System Design Engineer** | Architects distributed backends, models schemas, and maps APIs. | High-level container structures, API endpoints, schema definitions, trade-offs. |
 | **Marketing Analyst** | Evaluates competitors, profiles segments, and sizes market scope. | TAM/SAM/SOM sizing matrices, competitor profiles, SWOT analysis, GTM advice. |
+| **Code Documenter** | Writes structured code documentation, docstrings, and API manuals according to custom tones. | Inline docstrings (Google/NumPy/JSDoc), markdown API guides, technical summaries. |
 
 ---
 

@@ -32,6 +32,7 @@ from mcp.server.fastmcp import Context, FastMCP
 from foundational_agents.core.coordinator import ProjectCoordinator
 from foundational_agents.core.state import SharedStateMatrix
 from foundational_agents.core.workers import (
+    CodeDocumenterWorker,
     MarketingAnalystWorker,
     PresentationMakerWorker,
     ProjectManagerWorker,
@@ -151,7 +152,31 @@ async def analyze_market(
     return await worker.execute(request, state, ctx=ctx)
 
 
-# ---------------------------------------------------------------------------
+@mcp.tool()
+async def document_code(
+    code: Annotated[str, "The raw code content or file content to be documented."],
+    ctx: Context,
+    tone: Annotated[str | None, "The desired tone for the documentation, e.g., 'conversational', 'academic', 'reference', 'succinct'."] = None,
+    format_needs: Annotated[str | None, "The desired format or documentation standard, e.g., 'JSDoc', 'Google Docstring', 'markdown api guide'."] = None,
+) -> str:
+    """Document code files, APIs, and classes according to specified tone and format needs.
+
+    The Code Documenter reads code, analyzes its parameters, types, returns, exceptions,
+    and complexity, and writes clean, well-formatted documentation.
+    """
+    request_parts = [f"Code:\n```\n{code}\n```"]
+    if tone:
+        request_parts.append(f"Desired Tone: {tone}")
+    if format_needs:
+        request_parts.append(f"Desired Format/Needs: {format_needs}")
+    request = "\n\n".join(request_parts)
+
+    worker = CodeDocumenterWorker(model=_get_model())
+    state = SharedStateMatrix(project_context="Code Documentation Request", phase="direct_execution")
+    return await worker.execute(request, state, ctx=ctx)
+
+
+# -------------------------------------------------------------------------------------------
 # Entrypoint
 # ---------------------------------------------------------------------------
 

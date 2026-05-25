@@ -13,6 +13,7 @@ from mcp.server.fastmcp import Context
 
 from foundational_agents.core.state import SharedStateMatrix
 from foundational_agents.core.workers import (
+    CodeDocumenterWorker,
     MarketingAnalystWorker,
     PresentationMakerWorker,
     ProjectManagerWorker,
@@ -26,7 +27,7 @@ for analyzing complex, multi-faceted requests and delegating work to a team of \
 specialized workers.
 
 ## Your Team
-You have four specialized workers available as tools:
+You have five specialized workers available as tools:
 
 | Tool | Specialist | Use When |
 |------|-----------|----------|
@@ -34,6 +35,7 @@ You have four specialized workers available as tools:
 | `delegate_to_project_manager` | Project Manager | The request involves planning, timelines, milestones, resource allocation, or risk. |
 | `delegate_to_system_designer` | System Design Engineer | The request involves architecture, APIs, data modeling, or technical design. |
 | `delegate_to_marketing_analyst` | Marketing Analyst | The request involves market research, competitive analysis, positioning, or GTM. |
+| `delegate_to_documenter` | Code Documenter | The request involves documenting code, API specs, writing comments, or creating manuals. |
 
 ## Orchestration Rules
 1. **Analyze first.** Before delegating, identify which aspects of the request \
@@ -80,6 +82,7 @@ class ProjectCoordinator:
             "project_manager": ProjectManagerWorker(model),
             "system_designer": SystemDesignerWorker(model),
             "marketing_analyst": MarketingAnalystWorker(model),
+            "code_documenter": CodeDocumenterWorker(model),
         }
 
     def _build_delegation_tools(self, ctx: Context | None = None) -> list:
@@ -146,11 +149,24 @@ class ProjectCoordinator:
             """
             return await workers["marketing_analyst"].execute(task, state, ctx=ctx)
 
+        async def delegate_to_documenter(task: str) -> str:
+            """Delegate a task to the Code Documenter specialist.
+
+            Use this tool when the request involves documenting code,
+            writing docstrings, adding comments, creating system manuals,
+            or summarizing technical API specifications.
+
+            Args:
+                task: A clear description of the code to document, target tone, and formats.
+            """
+            return await workers["code_documenter"].execute(task, state, ctx=ctx)
+
         return [
             delegate_to_presentation_maker,
             delegate_to_project_manager,
             delegate_to_system_designer,
             delegate_to_marketing_analyst,
+            delegate_to_documenter,
         ]
 
     async def run(self, request: str, ctx: Context | None = None) -> str:
